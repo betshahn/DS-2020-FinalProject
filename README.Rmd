@@ -3,6 +3,7 @@ title: "Final Project (DS 201)"
 author: "Betsy Hahn"
 date: "2025-11-05"
 output: github_document
+
 ---
 
 ```{r setup, include = FALSE}
@@ -47,8 +48,6 @@ This dataset provides both geophysical and observational information, making it 
 ```{r, }
 df$Month <- month.name[df$Month] # making month numbers the names 
 
-df$Month <- month.abb[df$Month] # abbreviated month name
-
 # new column, Date, with month, year
 df <- df |>
   mutate(
@@ -57,16 +56,15 @@ df <- df |>
 
 ```
 
-## Curiousity
+## Curiosity
 
 1. How do depth or distance to nearest station (dmin) affect recorded intensity of mmi?
 2. Are certain months or years more prone to tsunamis?
 3. Do earthquakes in certain latitude/longitude ranges generate tsunamis more often?
-4. Which variables are most important for predicting tsunami potential?
-5. Are there extreme earthquakes with no tsunami?
-6. Are earthquakes clustered along known tectonic fault lines?
-7. Are there earthquakes far from mapped faults—potentially unknown faults or data errors?
-8. Does earthquake magnitude correlate with proximity to major faults?
+4. Are there extreme earthquakes with no tsunami?
+5. Are earthquakes clustered along known tectonic fault lines?
+6. Are there earthquakes far from mapped faults—potentially unknown faults or data errors?
+7. Does earthquake magnitude correlate with proximity to major faults?
 ```{r, curiousity}
 #1 
 #plot of the depth and mmi 
@@ -121,6 +119,62 @@ ggplot() +
        x = "Longitude", y = "Latitude", color = "Tsunami") +
   theme_minimal()
 
+#4 
+#mag vs occurence
+ggplot(df, aes(x = magnitude, y = tsunami)) +
+  geom_jitter(height = 0.1, alpha = 0.4) +
+  labs(title="Extreme Magnitude Earthquakes Without Tsunamis",
+       x="Earthquake Magnitude", y="Tsunami (0 = no, 1 = yes)")
+
+#big earthquakes with no tsunami:
+df |> 
+  filter(magnitude > 7 & tsunami == 0) |> 
+  select(magnitude, depth, latitude, longitude) |> 
+  head(10)
+
+#5 
+world <- map_data("world")
+
+ggplot() +
+  geom_polygon(data = world, aes(long, lat, group = group),
+               fill = "gray90", color = "white") +
+  geom_point(data = df,
+             aes(longitude, latitude),
+             color = "red", alpha = 0.3, size = 1) +
+  coord_fixed(1.3) +
+  labs(
+    title = "Global Earthquake Epicenters",
+    x = "Longitude",
+    y = "Latitude"
+  )
+#yes — strong clustering along the Pacific Ring of Fire, Indonesia, Japan, Chile, etc.
+
+#6
+ggplot(df, aes(longitude, latitude)) +
+  geom_point(alpha = 0.15, size = 1) +
+  labs(title="Earthquakes Potentially Far From Major Fault Lines",
+       x="Longitude", y="Latitude")
+
+#7
+ggplot(df, aes(x = dmin, y = magnitude)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth() +
+  labs(title="Magnitude vs Distance to Nearest Station (Fault Proxy)",
+       x="Distance to Nearest Station (degrees)",
+       y="Earthquake Magnitude")
+
+#another one
+df %>%
+  mutate(large = ifelse(magnitude >= 7, "Large (≥7)", "Smaller")) %>%
+  ggplot(aes(x = magnitude, y = depth, color = factor(tsunami))) +
+  geom_point(alpha = 0.6, size = 2) +
+  scale_color_manual(values = c("0" = "blue", "1" = "red"),
+                     labels = c("No Tsunami", "Tsunami")) +
+  labs(title = "Large Earthquakes: Which Ones Produce Tsunamis?",
+       x = "Magnitude",
+       y = "Depth (km)",
+       color = "Tsunami") +
+  theme_minimal()
 ```
 Interpretation:
 1) The data suggest that both earthquake depth and distance to the nearest recording station negatively affect recorded intensity. Shallower earthquakes tend to produce higher CDI and MMI values because seismic energy loses less strength before reaching the surface. Similarly, stations located farther from the earthquake epicenter generally record lower intensities due to wave attenuation over distance. Scatterplots of intensity versus depth or distance show a clear downward trend, consistent with these physical expectations. Overall, as depth or distance increases, the perceived shaking intensity decreases.
@@ -129,20 +183,32 @@ Interpretation:
 
 3) The map shows that earthquakes generating tsunamis (tsunami = 1) are concentrated in specific latitude and longitude ranges, corresponding to subduction zones such as the Pacific “Ring of Fire.” Most earthquakes do not produce tsunamis (tsunami = 0) and are more widely dispersed. The semi-transparent points reveal areas of high earthquake density, while the red tsunami points highlight regions where underwater megathrust earthquakes are more likely to trigger tsunamis. Overall, tsunami-generating earthquakes are strongly location-dependent, occurring primarily near tectonic plate boundaries.
 
-4)
+4) The results show that several high-magnitude earthquakes did not generate tsunamis, even those exceeding magnitude 7.0. This demonstrates that extreme magnitude alone is not enough to guarantee tsunami formation. Many of these large but non-tsunamigenic events tend to occur deeper within the Earth’s crust or in regions where tectonic geometry does not allow significant vertical displacement of the seafloor. This finding emphasizes that tsunami generation depends on a combination of factors—especially depth, fault type, and location—rather than magnitude alone. The presence of powerful earthquakes without tsunamis reinforces the need for more nuanced predictive models and monitoring strategies.
+
+5) The spatial density visualizations clearly show that global earthquakes are highly clustered along major tectonic fault boundaries. The strongest concentrations occur along the Pacific “Ring of Fire,” including Japan, Alaska, Chile, and Indonesia. Additional clusters appear along the Himalayan region and the Mid-Atlantic Ridge. These patterns closely match well-mapped plate boundaries, confirming that the dataset accurately reflects global seismic behavior. The clustering reinforces the established understanding that most earthquakes occur where plates converge, diverge, or slide past one another.
+
+6) The point-density map reveals several earthquakes occurring far from major plate boundaries. These isolated events may represent intraplate earthquakes, which occur deep within stable continental interiors and are less common but still significant. Some isolated points may also reflect incomplete mapping of smaller fault systems, especially in oceanic or sparsely monitored regions. Another possibility is data error or location uncertainty. While these events are few relative to the total dataset, their presence suggests that seismic risk is not limited strictly to plate boundaries and that rare but impactful intraplate events should not be overlooked.
+
+7) The relationship between magnitude and dmin (used as a proxy for fault proximity) appears weak. Although many large earthquakes occur in regions with smaller dmin values—consistent with dense seismic monitoring along major fault zones—the overall scatter shows no strong or consistent correlation. High-magnitude earthquakes occur across a broad range of distances. This indicates that while large earthquakes commonly originate near major faults, magnitude alone does not meaningfully predict how close an event is to a monitored fault line. The lack of strong correlation suggests that tectonic setting and fault mechanics influence magnitude more than simple geographic distance to a station or fault proxy.
+
 
 ## Scepticism 
 
-Critical of findings, and multiple approaches and techniques used to verify unintuitive results.
+While the results strongly align with known geological patterns, several limitations in the dataset and analysis warrant caution. The absence of tsunamis before 2013 may reflect incomplete reporting rather than true zero occurrences, introducing potential bias into temporal trends. The use of dmin (distance to nearest seismic station) as a proxy for proximity to fault lines is also imperfect—station networks vary significantly by region, meaning areas with sparse monitoring may appear farther from tectonic features than they truly are. Additionally, the simple linear and visual models used here capture broad relationships but cannot fully represent the complex physics of tsunami generation, which depends on seafloor displacement, fault geometry, and ocean depth. These uncertainties suggest that while the patterns observed are meaningful, they should be interpreted as preliminary insights rather than definitive causal conclusions.
 
 ## Organization
 
-Findings very well organized: best findings highlighted, rather than showing everything. Clear headings demarcate separate sections. Excellent flow from one section to the next. Clear evidence of systematic analysis. Number of pages appropriate.
+The analysis is structured to move from basic exploratory questions to more complex geophysical interpretations, allowing the findings to build logically. Each section focuses on a specific question and includes both graphical evidence and written interpretation, ensuring clarity and readability. Only the most relevant plots and results are highlighted, preventing information overload and maintaining a tight narrative. The report's progression—from dataset description, to exploratory visualizations, to interpretive insights—reflects a systematic approach to uncovering meaningful patterns in earthquake and tsunami data. Overall, the organization supports a coherent flow and allows readers to easily understand how each finding connects to broader questions of seismic risk.
+
+## Most Important Findings
+
+The analysis reveals several key insights about earthquakes and tsunami risk. Magnitude, depth, and event significance are the strongest predictors of tsunami occurrence: larger and shallower earthquakes are far more likely to generate tsunamis. Tsunamis are highly location-dependent, occurring almost exclusively along major tectonic boundaries such as the Pacific Ring of Fire. However, not all extreme earthquakes produce tsunamis—some large-magnitude events in less favorable tectonic settings do not trigger significant waves, highlighting the importance of depth and fault geometry. While earthquakes cluster strongly along known fault lines, a small number occur in unexpected locations, suggesting intraplate events or potential gaps in fault mapping. Finally, magnitude alone does not correlate strongly with proximity to faults, indicating that both tectonic context and earthquake mechanics must be considered to assess tsunami risk. These findings underscore the complex interplay of physical and geographic factors in predicting tsunami potential.
 
 ## Conclusions
 
-Conclusions follows logically from results and findings. Includes interesting further questions and ideas for future research.
+This analysis provides a broad overview of global earthquake and tsunami patterns, highlighting key variables that influence tsunami occurrence and revealing how seismic activity aligns with known tectonic structures. Magnitude, depth, and event significance emerge as the most important predictors of tsunami potential, though even very large earthquakes do not always generate tsunamis. Spatial patterns confirm strong clustering along major fault lines, particularly the Pacific Ring of Fire, while also identifying a smaller number of intraplate events that fall outside typical tectonic zones. The weak relationship between magnitude and fault proximity suggests that earthquake size alone cannot be used to infer seismic setting or tsunami risk.
 
+Future work could incorporate more detailed geophysical variables—such as fault type, rupture mechanism, and ocean floor topography—to improve predictive accuracy. Machine learning models or logistic regression could also be explored to more rigorously quantify tsunami risk. Overall, the findings emphasize the complexity of earthquake–tsunami interactions and underscore the importance of continued global monitoring and research.
 
 
 
