@@ -1,0 +1,148 @@
+---
+title: "Final Project (DS 201)"
+author: "Betsy Hahn"
+date: "2025-11-05"
+output: github_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+library(zoo)
+```
+## Global Earthquake-Tsunami Risk Assessment Dataset
+```{r datasest, include = FALSE }
+df <- read.csv(file="/Users/betsyhahn/downloads/earthquake_data_tsunami.csv", header = TRUE) 
+
+```
+
+## Introduction 
+
+Earthquakes and tsunamis are among the most catastrophic natural hazards, capable of causing massive loss of life and economic damage. Understanding the factors that influence tsunami occurrence—particularly earthquake magnitude—is critical not only for scientific knowledge but also for improving early warning systems and disaster preparedness. From a data science perspective, analyzing this data can help identify patterns, build predictive models, and inform risk mitigation strategies, ultimately saving lives and resources.
+
+This analysis uses the Global Earthquake-Tsunami Risk Assessment Dataset, which includes earthquake magnitudes and records of associated tsunamis worldwide. The goal is to explore patterns in the data, identify relationships between earthquake characteristics and tsunami events, and apply statistical and visual analyses to generate actionable insights. The subsequent sections will cover data preprocessing, exploratory data analysis, and key findings that inform global disaster risk management.
+
+## Data Description 
+
+The dataset used in this analysis is the Global Earthquake-Tsunami Risk Assessment Dataset, which contains information on global earthquakes and their potential to generate tsunamis. The key variables include:
+- magnitude = earthquake magnitide (using the Richter scale)
+- cdi = community decimal intensity (felt intensity)
+- mmi = modified mercalli intensity (instumental)
+- sig = event significant score
+- nst = number of seismic monitoring stations that recorded the earthquake
+- dmin = distance to nearest seismic station (degrees)
+- gap = azimuthal gap between stations (degrees)
+- depth = depth of the earthquake’s epicenter (in kilometers)
+- latitude = latitude of the earthquake epicenter
+- longitude = longitude of the earthquake epicenter
+- year = year of occurance 
+- month = month of occurance
+- tsunami = tsunami potential 
+
+This dataset provides both geophysical and observational information, making it suitable for statistical analysis, pattern detection, and predictive modeling of tsunami risk.
+
+## "Cleaning"
+
+```{r, }
+df$Month <- month.name[df$Month] # making month numbers the names 
+
+df$Month <- month.abb[df$Month] # abbreviated month name
+
+# new column, Date, with month, year
+df <- df |>
+  mutate(
+    Date = as.yearmon(paste(Year, Month), "%Y %m")
+  )
+
+```
+
+## Curiousity
+
+1. How do depth or distance to nearest station (dmin) affect recorded intensity of mmi?
+2. Are certain months or years more prone to tsunamis?
+3. Do earthquakes in certain latitude/longitude ranges generate tsunamis more often?
+4. Which variables are most important for predicting tsunami potential?
+5. Are there extreme earthquakes with no tsunami?
+6. Are earthquakes clustered along known tectonic fault lines?
+7. Are there earthquakes far from mapped faults—potentially unknown faults or data errors?
+8. Does earthquake magnitude correlate with proximity to major faults?
+```{r, curiousity}
+#1 
+#plot of the depth and mmi 
+ggplot(df, aes(depth, mmi)) +
+  geom_point() +
+  geom_smooth() +
+  labs(
+    Title = "plot of the depth vs modified mercalli intensity" ,
+    x = "depth",
+    y = "modified mercalli intensity" 
+  )
+#plot of the distance to nearest seismic station and modified mercalli intensity
+ggplot(df, aes(dmin, mmi)) +
+  geom_point() +
+  geom_smooth() +
+  labs(
+    Title = "plot of the distance to nearest seismic station vs modified mercalli intensity" ,
+    x = "distance to nearest seismic station (degrees)",
+    y = "modified mercalli intensity" 
+  )
+
+#2 
+#by year
+df |> 
+  group_by(Year) |> 
+  summarise(tsunami_count = sum(tsunami, na.rm = TRUE)) |>
+  ggplot(aes(Year, tsunami_count)) +
+  geom_col() +
+  labs(title="Tsunami Counts by Year", y="Number of Tsunamis", x="Year")
+
+#by month
+df |> 
+  group_by(Month) |> 
+  summarise(tsunami_count = sum(tsunami, na.rm = TRUE)) |>
+  ggplot(aes(Month, tsunami_count)) +
+  geom_col() +
+  labs(title="Tsunami Counts by Month", y="Number of Tsunamis", x="Month")
+
+#3 
+world <- map_data("world")
+
+#plot earthquakes over the map with semi-transparent points
+ggplot() +
+  geom_polygon(data = world, aes(x = long, y = lat, group = group),
+               fill = "gray90", color = "gray50") +
+  geom_point(data = df, 
+             aes(x = longitude, y = latitude, color = factor(tsunami)),
+             alpha = 0.3, size = 2) +  
+  scale_color_manual(values = c("0" = "blue", "1" = "red"), 
+                     labels = c("No tsunami", "Tsunami")) +
+  labs(title = "Earthquake Locations and Tsunami Occurrence",
+       x = "Longitude", y = "Latitude", color = "Tsunami") +
+  theme_minimal()
+
+```
+Interpretation:
+1) The data suggest that both earthquake depth and distance to the nearest recording station negatively affect recorded intensity. Shallower earthquakes tend to produce higher CDI and MMI values because seismic energy loses less strength before reaching the surface. Similarly, stations located farther from the earthquake epicenter generally record lower intensities due to wave attenuation over distance. Scatterplots of intensity versus depth or distance show a clear downward trend, consistent with these physical expectations. Overall, as depth or distance increases, the perceived shaking intensity decreases.
+
+2) The data show that tsunami occurrences do not strongly follow a seasonal pattern, with most months having a similar likelihood of events. November stands out with slightly more tsunamis than other months. Before 2013, the dataset shows no recorded tsunamis, which may reflect a lack of data or reporting rather than the absence of events. Some years after 2013 have more tsunamis than others, usually due to a few large earthquakes that generate multiple events. Overall, tsunami frequency varies from year to year, but there is no consistent monthly or seasonal trend.
+
+3) The map shows that earthquakes generating tsunamis (tsunami = 1) are concentrated in specific latitude and longitude ranges, corresponding to subduction zones such as the Pacific “Ring of Fire.” Most earthquakes do not produce tsunamis (tsunami = 0) and are more widely dispersed. The semi-transparent points reveal areas of high earthquake density, while the red tsunami points highlight regions where underwater megathrust earthquakes are more likely to trigger tsunamis. Overall, tsunami-generating earthquakes are strongly location-dependent, occurring primarily near tectonic plate boundaries.
+
+4)
+
+## Scepticism 
+
+Critical of findings, and multiple approaches and techniques used to verify unintuitive results.
+
+## Organization
+
+Findings very well organized: best findings highlighted, rather than showing everything. Clear headings demarcate separate sections. Excellent flow from one section to the next. Clear evidence of systematic analysis. Number of pages appropriate.
+
+## Conclusions
+
+Conclusions follows logically from results and findings. Includes interesting further questions and ideas for future research.
+
+
+
+
