@@ -1,5 +1,5 @@
-# Final Project Data Science 2020:Data Acquisition and Exploratory Data Analysis (Fall 2025)
 # Global Earthquake-Tsunami Risk Assessment
+### Final Project Data Science 2020: Data Acquisition and Exploratory Data Analysis (Fall 2025)
 
 **Author:** Betsy Hahn  
 **Date:** 2025-11-05  
